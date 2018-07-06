@@ -19,17 +19,20 @@
 							<th>Temperature</th>
 							<th>Max temperature</th>
 							<th>Min temperature</th>
+							<th>Weather state</th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="item in data">
-							<td>{{ item.id }}</td>
-							<td></td>
-							<td></td>
-							<td></td>
+						<tr v-for="city in cities">
+							<td><router-link :to="{ path: '/weather/' +  city.id }">{{ city.name }}</router-link></td>
+							<td>{{ city.temp ? (Math.round(city.temp * 100)/100).toFixed(0) : '' }} °C</td>
+							<td>{{ city.max_temp ? (Math.round(city.max_temp * 100)/100).toFixed(0) : '' }} °C</td>
+							<td>{{ city.min_temp ? (Math.round(city.min_temp * 100)/100).toFixed(0) : '' }} °C</td>
+							<td><img style="width: 20px" :src="'https://www.metaweather.com/static/img/weather/ico/' + city.state + '.ico'" alt=""></td>
 						</tr>
 					</tbody>
 				</table>
+				<router-view></router-view>
 			</div>
 		</div>
 		<!-- <router-link to="/">Home page</router-link>
@@ -46,14 +49,14 @@
 	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 	<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
 	<script>
-		const proxy = "https://cors-anywhere.herokuapp.com/";
+		const proxy = "https://cryptic-headland-94862.herokuapp.com/";
 		const NotFound = { template: '<p>Page not found</p>' }
 		const Home = { template: '<p>home page</p>' }
 		const About = { template: '<p>about page</p>' }
 
 		const routes = [
 		  { path: '/', component: Home },
-  		  { path: '/about', component: About }
+  		  { path: '/weather/:woeid', component: About }
 		]
 
 		const router = new VueRouter({
@@ -65,15 +68,40 @@
 		  el: '#app',
 			data() {
 				return {
-					data: null,
+					data: [],
+					icon: null,
+					cities: [
+						{ name: 'Istanbul', id: 2344116, temp: '', max_temp: '', min_temp: '', state: '' },
+						{ name: 'Berlin', id: 638242, temp: '', max_temp: '', min_temp: '', state: '' },
+						{ name: 'London', id: 44418, temp: '', max_temp: '', min_temp: '', state: '' },
+						{ name: 'Helsinki', id: 565346, temp: '', max_temp: '', min_temp: '', state: '' },
+						{ name: 'Dublin', id: 560743, temp: '', max_temp: '', min_temp: '', state: '' },
+						{ name: 'Vancouver', id: 9807, temp: '', max_temp: '', min_temp: '', state: '' }
+					],
 					currentRoute: window.location.pathname
 				};
 			},
 
+			
+
 			mounted() {
-				axios
-				.get(proxy + "https://www.metaweather.com/api/location/44418/2018/07/06")
-				.then(response => (this.data = response.data));
+				var requests = [];
+
+				this.cities.forEach(function(value, key) {
+					requests.push(axios.get(proxy + "https://www.metaweather.com/api/location/" + value.id + "/2018/07/06"));
+				});
+
+
+				axios.all(requests)
+				.then(function(results) {
+					console.log(results);
+					results.forEach(function(value, key) {
+							this.cities[key].temp = value.data[35].the_temp
+							this.cities[key].max_temp = value.data[35].max_temp
+							this.cities[key].min_temp = value.data[35].min_temp
+							this.cities[key].state = value.data[35].weather_state_abbr
+					}.bind(this))
+				}.bind(this))
 			},
 
 			computed: {
